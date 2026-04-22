@@ -46,6 +46,8 @@ records:
 
 ## Running with Docker Compose
 
+The image is published to the GitHub Container Registry. Pull and start with:
+
 ```bash
 docker compose up -d
 ```
@@ -54,6 +56,12 @@ The service binds to port `8080`. Pass secrets via env vars to avoid storing the
 
 ```bash
 UPDATE_TOKEN=secret CLOUDFLARE_API_TOKEN=cf-token docker compose up -d
+```
+
+To pin a specific release instead of `latest`, edit `docker-compose.yml` and change the image tag:
+
+```yaml
+image: ghcr.io/aivus/dyndns:1.0.0
 ```
 
 ## Running directly

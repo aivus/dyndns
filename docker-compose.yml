@@ -1,6 +1,7 @@
 services:
   dyndns:
-    build: .
+    #build: .
+    image: ghcr.io/aivus/dyndns:latest
     ports:
       - "8080:8080"
     volumes:
