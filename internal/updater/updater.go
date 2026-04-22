@@ -143,7 +143,7 @@ func (c *cloudflareClient) UpdateRecord(ctx context.Context, zoneID, recordID, n
 			Name:    cloudflare.F(name),
 			Type:    cloudflare.F(dns.AAAARecordTypeAAAA),
 			Content: cloudflare.F(ip),
-			TTL:     cloudflare.F(dns.TTL(1)),
+			TTL:     cloudflare.F(dns.TTL(60)),
 		},
 	})
 	return err
@@ -156,7 +156,7 @@ func (c *cloudflareClient) CreateRecord(ctx context.Context, zoneID, name, ip st
 			Name:    cloudflare.F(name),
 			Type:    cloudflare.F(dns.AAAARecordTypeAAAA),
 			Content: cloudflare.F(ip),
-			TTL:     cloudflare.F(dns.TTL(1)),
+			TTL:     cloudflare.F(dns.TTL(60)),
 		},
 	})
 	return err
