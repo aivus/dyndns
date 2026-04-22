@@ -1,5 +1,7 @@
 # dyndns
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A lightweight DynDNS bridge for Fritz!Box routers that keeps Cloudflare AAAA (IPv6) records in sync with your home prefix.
 
 When your ISP rotates your IPv6 prefix, Fritz!Box calls this service via its built-in DynDNS hook. The service combines the new prefix with a static per-host suffix and upserts the corresponding Cloudflare DNS record — creating it if it doesn't exist, updating it only when the address has changed.
@@ -92,3 +94,7 @@ go vet ./...
 ```
 
 CI runs on every push to `main` and on all pull requests.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
