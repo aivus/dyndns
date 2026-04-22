@@ -1,6 +1,7 @@
 # dyndns
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/aivus/dyndns/actions/workflows/ci.yml/badge.svg)](https://github.com/aivus/dyndns/actions/workflows/ci.yml)
 
 A lightweight DynDNS bridge for Fritz!Box routers that keeps Cloudflare AAAA (IPv6) records in sync with your home network.
 
