@@ -1,0 +1,24 @@
+# Secret token Fritz!Box includes in every update request.
+# Configure in Fritz!Box: Internet → Freigaben → DynDNS → Password field.
+update_token: "change-me"
+
+cloudflare:
+  # Cloudflare API token with DNS:Edit permission for the target zone(s).
+  # Can also be set via CLOUDFLARE_API_TOKEN environment variable.
+  api_token: "your-cloudflare-api-token"
+
+records:
+  # Each entry maps a DNS record to a static IPv6 host suffix.
+  # The app combines the prefix received from the router with the suffix
+  # to produce the full AAAA record value.
+  #
+  # Example: prefix "2001:db8:1234:5601::/64" + suffix "::1"
+  #          → AAAA record "2001:db8:1234:5601::1"
+  - zone_id: "your-cloudflare-zone-id"
+    name: "home.example.com"
+    suffix: "::1"
+
+  # Add more records as needed:
+  # - zone_id: "your-cloudflare-zone-id"
+  #   name: "nas.example.com"
+  #   suffix: "::2"
