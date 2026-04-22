@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	cloudflare "github.com/cloudflare/cloudflare-go/v6"
 	"github.com/cloudflare/cloudflare-go/v6/dns"
@@ -60,13 +61,10 @@ func (u *Updater) upsert(ctx context.Context, rec config.RecordConfig, ip string
 	}
 	for _, r := range existing {
 		if r.Content == ip {
-			continue
-		}
-		if err := u.client.UpdateRecord(ctx, rec.ZoneID, r.ID, rec.Name, ip); err != nil {
-			return err
+			return nil
 		}
 	}
-	return nil
+	return u.client.UpdateRecord(ctx, rec.ZoneID, existing[0].ID, rec.Name, ip)
 }
 
 // CombinePrefix combines an IPv6 CIDR prefix (e.g. "2001:db8::/64") with a
@@ -109,19 +107,18 @@ func NewCloudflareClient(apiToken string) DNSClient {
 }
 
 func (c *cloudflareClient) ListRecords(ctx context.Context, zoneID, name string) ([]Record, error) {
-	resp, err := c.cl.DNS.Records.List(ctx, dns.RecordListParams{
+	pager := c.cl.DNS.Records.ListAutoPaging(ctx, dns.RecordListParams{
 		ZoneID: cloudflare.F(zoneID),
-		Name:   cloudflare.F(dns.RecordListParamsName{Exact: cloudflare.F(name)}),
 		Type:   cloudflare.F(dns.RecordListParamsTypeAAAA),
 	})
-	if err != nil {
-		return nil, err
+	var out []Record
+	for pager.Next() {
+		r := pager.Current()
+		if strings.EqualFold(r.Name, name) {
+			out = append(out, Record{ID: r.ID, Content: r.Content})
+		}
 	}
-	out := make([]Record, 0, len(resp.Result))
-	for _, r := range resp.Result {
-		out = append(out, Record{ID: r.ID, Content: r.Content})
-	}
-	return out, nil
+	return out, pager.Err()
 }
 
 func (c *cloudflareClient) UpdateRecord(ctx context.Context, zoneID, recordID, name, ip string) error {
