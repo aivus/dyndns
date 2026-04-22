@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	cloudflare "github.com/cloudflare/cloudflare-go/v4"
-	"github.com/cloudflare/cloudflare-go/v4/dns"
-	"github.com/cloudflare/cloudflare-go/v4/option"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/dns"
+	"github.com/cloudflare/cloudflare-go/v6/option"
 
 	"github.com/aivus/dyndns/internal/config"
 )
