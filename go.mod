@@ -1,6 +1,6 @@
 module github.com/aivus/dyndns
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/cloudflare/cloudflare-go/v6 v6.9.0

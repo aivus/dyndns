@@ -84,6 +84,17 @@ func TestUpdate_MalformedIp6addr(t *testing.T) {
 	}
 }
 
+func TestUpdate_IPv4Ip6addr(t *testing.T) {
+	h := New("secret", &mockUpdater{})
+	r := httptest.NewRequest(http.MethodGet, "/update?token=secret&ip6addr=192.168.1.1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
 func TestUpdate_MalformedPrefix(t *testing.T) {
 	h := New("secret", &mockUpdater{})
 	r := httptest.NewRequest(http.MethodGet, "/update?token=secret&ip6lanprefix=notaprefix", nil)
@@ -95,6 +106,17 @@ func TestUpdate_MalformedPrefix(t *testing.T) {
 	}
 	if !strings.Contains(w.Body.String(), "invalid") {
 		t.Errorf("body %q does not contain %q", w.Body.String(), "invalid")
+	}
+}
+
+func TestUpdate_IPv4Prefix(t *testing.T) {
+	h := New("secret", &mockUpdater{})
+	r := httptest.NewRequest(http.MethodGet, "/update?token=secret&ip6lanprefix=192.168.0.0/24", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 }
 

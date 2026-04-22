@@ -40,16 +40,22 @@ func (h *Update) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	prefix := q.Get("ip6lanprefix")
 	if prefix != "" {
-		if _, _, err := net.ParseCIDR(prefix); err != nil {
+		ip, _, err := net.ParseCIDR(prefix)
+		if err != nil {
 			http.Error(w, fmt.Sprintf("invalid ip6lanprefix: %v", err), http.StatusBadRequest)
+			return
+		}
+		if ip.To4() != nil {
+			http.Error(w, "invalid ip6lanprefix: must be an IPv6 prefix", http.StatusBadRequest)
 			return
 		}
 	}
 
 	routerIP := q.Get("ip6addr")
 	if routerIP != "" {
-		if net.ParseIP(routerIP) == nil {
-			http.Error(w, "invalid ip6addr", http.StatusBadRequest)
+		ip := net.ParseIP(routerIP)
+		if ip == nil || ip.To4() != nil {
+			http.Error(w, "invalid ip6addr: must be an IPv6 address", http.StatusBadRequest)
 			return
 		}
 	}

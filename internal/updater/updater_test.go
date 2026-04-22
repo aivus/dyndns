@@ -51,7 +51,7 @@ func TestCombinePrefix(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := CombinePrefix(tc.prefix, tc.suffix)
+			got, err := combinePrefix(tc.prefix, tc.suffix)
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("expected error, got %q", got)

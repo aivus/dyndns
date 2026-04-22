@@ -47,7 +47,7 @@ func (u *Updater) Update(ctx context.Context, prefix, routerIP string) error {
 		var ip string
 		if rec.Suffix != "" {
 			var err error
-			ip, err = CombinePrefix(prefix, rec.Suffix)
+			ip, err = combinePrefix(prefix, rec.Suffix)
 			if err != nil {
 				return fmt.Errorf("record %s: %w", rec.Name, err)
 			}
@@ -83,9 +83,9 @@ func (u *Updater) upsert(ctx context.Context, rec config.RecordConfig, ip string
 	return u.client.UpdateRecord(ctx, rec.ZoneID, existing[0].ID, rec.Name, ip)
 }
 
-// CombinePrefix combines an IPv6 CIDR prefix (e.g. "2001:db8::/64") with a
+// combinePrefix combines an IPv6 CIDR prefix (e.g. "2001:db8::/64") with a
 // static host suffix (e.g. "::1") to produce a full IPv6 address string.
-func CombinePrefix(prefix, suffix string) (string, error) {
+func combinePrefix(prefix, suffix string) (string, error) {
 	_, ipNet, err := net.ParseCIDR(prefix)
 	if err != nil {
 		return "", fmt.Errorf("invalid prefix %q: %w", prefix, err)
