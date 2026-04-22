@@ -166,6 +166,27 @@ func TestUpdater_RecordDoesNotExist(t *testing.T) {
 	}
 }
 
+func TestToFQDN(t *testing.T) {
+	tests := []struct {
+		name     string
+		zone     string
+		want     string
+	}{
+		{"home", "example.com", "home.example.com"},
+		{"home.example.com", "example.com", "home.example.com"},   // already FQDN
+		{"HOME", "Example.COM", "home.example.com"},               // case-insensitive
+		{"home.base", "example.com", "home.base.example.com"},     // multi-label config
+		{"home.base.example.com", "example.com", "home.base.example.com"}, // already FQDN multi-label
+		{"example.com", "example.com", "example.com"},             // apex
+	}
+	for _, tc := range tests {
+		got := toFQDN(tc.name, tc.zone)
+		if got != tc.want {
+			t.Errorf("toFQDN(%q, %q) = %q, want %q", tc.name, tc.zone, got, tc.want)
+		}
+	}
+}
+
 func TestUpdater_CloudflareAPIError(t *testing.T) {
 	apiErr := errors.New("cloudflare: rate limit exceeded")
 	mock := &mockDNSClient{

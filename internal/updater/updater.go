@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"net"
 	"strings"
+	"sync"
 
 	cloudflare "github.com/cloudflare/cloudflare-go/v6"
 	"github.com/cloudflare/cloudflare-go/v6/dns"
 	"github.com/cloudflare/cloudflare-go/v6/option"
+	"github.com/cloudflare/cloudflare-go/v6/zones"
 
 	"github.com/aivus/dyndns/internal/config"
 )
@@ -67,7 +69,6 @@ func (u *Updater) upsert(ctx context.Context, rec config.RecordConfig, ip string
 	if err != nil {
 		return err
 	}
-	slog.Debug("listed existing AAAA records", "name", rec.Name, "count", len(existing))
 	if len(existing) == 0 {
 		slog.Info("creating AAAA record", "name", rec.Name, "ip", ip)
 		return u.client.CreateRecord(ctx, rec.ZoneID, rec.Name, ip)
@@ -111,7 +112,8 @@ func CombinePrefix(prefix, suffix string) (string, error) {
 
 // cloudflareClient wraps the real Cloudflare SDK to implement DNSClient.
 type cloudflareClient struct {
-	cl *cloudflare.Client
+	cl         *cloudflare.Client
+	zoneNames  sync.Map // zoneID → zone domain name (string)
 }
 
 // NewCloudflareClient creates a production DNSClient backed by the Cloudflare API.
@@ -121,19 +123,53 @@ func NewCloudflareClient(apiToken string) DNSClient {
 	}
 }
 
+// zoneName returns the domain name for a zone ID, caching results so the
+// extra API call only happens once per zone per process lifetime.
+func (c *cloudflareClient) zoneName(ctx context.Context, zoneID string) (string, error) {
+	if v, ok := c.zoneNames.Load(zoneID); ok {
+		return v.(string), nil
+	}
+	zone, err := c.cl.Zones.Get(ctx, zones.ZoneGetParams{ZoneID: cloudflare.F(zoneID)})
+	if err != nil {
+		return "", fmt.Errorf("lookup zone %s: %w", zoneID, err)
+	}
+	c.zoneNames.Store(zoneID, zone.Name)
+	return zone.Name, nil
+}
+
 func (c *cloudflareClient) ListRecords(ctx context.Context, zoneID, name string) ([]Record, error) {
+	zoneName, err := c.zoneName(ctx, zoneID)
+	if err != nil {
+		return nil, err
+	}
+	fqdn := toFQDN(name, zoneName)
 	pager := c.cl.DNS.Records.ListAutoPaging(ctx, dns.RecordListParams{
 		ZoneID: cloudflare.F(zoneID),
+		Name:   cloudflare.F(dns.RecordListParamsName{Exact: cloudflare.F(fqdn)}),
 		Type:   cloudflare.F(dns.RecordListParamsTypeAAAA),
 	})
 	var out []Record
 	for pager.Next() {
 		r := pager.Current()
-		if strings.EqualFold(r.Name, name) {
-			out = append(out, Record{ID: r.ID, Content: r.Content})
-		}
+		out = append(out, Record{ID: r.ID, Content: r.Content})
 	}
-	return out, pager.Err()
+	if err := pager.Err(); err != nil {
+		return nil, err
+	}
+	slog.Debug("cloudflare AAAA record list", "zone_id", zoneID, "fqdn", fqdn, "count", len(out))
+	return out, nil
+}
+
+// toFQDN returns the absolute DNS name for a record. If name is already a
+// subdomain of zoneName (or equals it), it is returned unchanged; otherwise
+// zoneName is appended. Comparison is case-insensitive.
+func toFQDN(name, zoneName string) string {
+	n := strings.ToLower(strings.TrimSuffix(name, "."))
+	z := strings.ToLower(strings.TrimSuffix(zoneName, "."))
+	if n == z || strings.HasSuffix(n, "."+z) {
+		return n
+	}
+	return n + "." + z
 }
 
 func (c *cloudflareClient) UpdateRecord(ctx context.Context, zoneID, recordID, name, ip string) error {

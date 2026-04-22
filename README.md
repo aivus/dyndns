@@ -90,6 +90,21 @@ image: ghcr.io/aivus/dyndns:1.0.0
 go run ./cmd/dyndns -config config.yaml -addr :8080
 ```
 
+To enable debug logging:
+
+```bash
+go run ./cmd/dyndns -config config.yaml -addr :8080 -debug
+```
+
+With Docker Compose, add `-debug` to the `command` in `docker-compose.yml`:
+
+```yaml
+services:
+  dyndns:
+    image: ghcr.io/aivus/dyndns:latest
+    command: ["-config", "/config/config.yaml", "-addr", ":8080", "-debug"]
+```
+
 ## Fritz!Box setup
 
 In Fritz!Box go to **Internet → Freigaben → DynDNS** and configure:
