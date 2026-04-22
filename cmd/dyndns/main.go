@@ -15,7 +15,14 @@ import (
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	addr := flag.String("addr", ":8080", "HTTP listen address")
+	debug := flag.Bool("debug", false, "enable debug logging")
 	flag.Parse()
+
+	logLevel := slog.LevelInfo
+	if *debug {
+		logLevel = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})))
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {

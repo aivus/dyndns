@@ -3,6 +3,7 @@ package updater
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"strings"
 
@@ -56,14 +57,18 @@ func (u *Updater) upsert(ctx context.Context, rec config.RecordConfig, ip string
 	if err != nil {
 		return err
 	}
+	slog.Debug("listed existing AAAA records", "name", rec.Name, "count", len(existing))
 	if len(existing) == 0 {
+		slog.Info("creating AAAA record", "name", rec.Name, "ip", ip)
 		return u.client.CreateRecord(ctx, rec.ZoneID, rec.Name, ip)
 	}
 	for _, r := range existing {
 		if r.Content == ip {
+			slog.Debug("AAAA record already up to date", "name", rec.Name, "ip", ip)
 			return nil
 		}
 	}
+	slog.Info("updating AAAA record", "name", rec.Name, "id", existing[0].ID, "ip", ip)
 	return u.client.UpdateRecord(ctx, rec.ZoneID, existing[0].ID, rec.Name, ip)
 }
 

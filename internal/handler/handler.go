@@ -46,12 +46,15 @@ func (h *Update) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("received prefix update", "prefix", prefix)
+
 	if err := h.updater.Update(r.Context(), prefix); err != nil {
 		slog.Error("failed to update DNS records", "error", err, "prefix", prefix)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
+	slog.Info("DNS records updated successfully", "prefix", prefix)
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "OK")
 }
