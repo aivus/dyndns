@@ -112,12 +112,12 @@ In Fritz!Box go to **Internet → Freigaben → DynDNS** and configure:
 | Field        | Value                                               |
 |--------------|-----------------------------------------------------|
 | Provider     | Custom                                              |
-| Update URL   | `http://<your-server>:8080/update?token=<DOMAIN>&ip6lanprefix=<IP6LANPREFIX>&ip6addr=<IP6ADDR>` |
-| Domain name  | your secret token (Fritz!Box sends this as `token`) |
-| Username     | _(any value)_                                       |
+| Update URL   | `http://<your-server>:8080/update?token=<username>&ip6lanprefix=<ip6lanprefix>&ip6addr=<ip6addr>` |
+| Domain name  | _(any valid domain name)_                           |
+| Username     | your secret token (Fritz!Box sends this as `token`) |
 | Password     | _(any value)_                                       |
 
-Fritz!Box substitutes `<DOMAIN>`, `<IP6LANPREFIX>`, and `<IP6ADDR>` with the actual values on each update. Including both parameters lets you update prefix+suffix records and router IP records in a single request. You can omit either parameter if you only have one record type.
+Fritz!Box substitutes `<username>`, `<ip6lanprefix>`, and `<ip6addr>` with the actual values on each update. Including both parameters lets you update prefix+suffix records and router IP records in a single request. You can omit either parameter if you only have one record type.
 
 ## Development
 
