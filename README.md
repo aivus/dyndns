@@ -2,21 +2,34 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A lightweight DynDNS bridge for Fritz!Box routers that keeps Cloudflare AAAA (IPv6) records in sync with your home prefix.
+A lightweight DynDNS bridge for Fritz!Box routers that keeps Cloudflare AAAA (IPv6) records in sync with your home network.
 
-When your ISP rotates your IPv6 prefix, Fritz!Box calls this service via its built-in DynDNS hook. The service combines the new prefix with a static per-host suffix and upserts the corresponding Cloudflare DNS record — creating it if it doesn't exist, updating it only when the address has changed.
+When your ISP rotates your IPv6 prefix (or reassigns your router's WAN address), Fritz!Box calls this service via its built-in DynDNS hook. The service upserts Cloudflare DNS records — creating them if they don't exist, updating them only when the address has changed.
+
+Two record modes are supported:
+
+- **Prefix + suffix** — combines the delegated LAN prefix with a static per-host suffix. Use this for hosts behind the router (NAS, server, etc.).
+- **Router IP** — uses the router's WAN IPv6 address directly. Use this when you want a DNS record for the router itself and the ISP assigns the full address (no fixed suffix).
 
 ## How it works
 
+**Prefix + suffix mode** (hosts behind the router):
 ```
 Fritz!Box  →  GET /update?token=<secret>&ip6lanprefix=2001:db8:1234::/64
-                         ↓
-                   dyndns service
                          ↓
            prefix "2001:db8:1234::/64" + suffix "::1"
                          ↓
            Cloudflare AAAA "2001:db8:1234::1"
 ```
+
+**Router IP mode** (the router itself):
+```
+Fritz!Box  →  GET /update?token=<secret>&ip6addr=2001:db8:1234:5601:abcd:ef01:2345:6789
+                         ↓
+           Cloudflare AAAA "2001:db8:1234:5601:abcd:ef01:2345:6789"
+```
+
+Both parameters can be sent in the same request to update all record types at once.
 
 ## Requirements
 
@@ -36,12 +49,16 @@ cloudflare:
   api_token: "your-cloudflare-api-token"  # or set CLOUDFLARE_API_TOKEN env var
 
 records:
+  # Prefix + suffix: full address = ip6lanprefix + suffix
   - zone_id: "your-cloudflare-zone-id"
     name: "home.example.com"
     suffix: "::1"
   - zone_id: "your-cloudflare-zone-id"
     name: "nas.example.com"
     suffix: "::2"
+  # Router IP: no suffix → uses ip6addr (the router's WAN IPv6 address) directly
+  - zone_id: "your-cloudflare-zone-id"
+    name: "router.example.com"
 ```
 
 `update_token` and `cloudflare.api_token` can be overridden via environment variables `UPDATE_TOKEN` and `CLOUDFLARE_API_TOKEN` respectively.
@@ -79,12 +96,12 @@ In Fritz!Box go to **Internet → Freigaben → DynDNS** and configure:
 | Field        | Value                                               |
 |--------------|-----------------------------------------------------|
 | Provider     | Custom                                              |
-| Update URL   | `http://<your-server>:8080/update?token=<DOMAIN>&ip6lanprefix=<IP6LANPREFIX>` |
+| Update URL   | `http://<your-server>:8080/update?token=<DOMAIN>&ip6lanprefix=<IP6LANPREFIX>&ip6addr=<IP6ADDR>` |
 | Domain name  | your secret token (Fritz!Box sends this as `token`) |
 | Username     | _(any value)_                                       |
 | Password     | _(any value)_                                       |
 
-Fritz!Box substitutes `<DOMAIN>` and `<IP6LANPREFIX>` with the actual values on each update.
+Fritz!Box substitutes `<DOMAIN>`, `<IP6LANPREFIX>`, and `<IP6ADDR>` with the actual values on each update. Including both parameters lets you update prefix+suffix records and router IP records in a single request. You can omit either parameter if you only have one record type.
 
 ## Development
 

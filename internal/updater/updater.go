@@ -37,13 +37,23 @@ func New(client DNSClient, records []config.RecordConfig) *Updater {
 	return &Updater{client: client, records: records}
 }
 
-// Update computes a new AAAA address for each configured record from the given
-// prefix and upserts it via Cloudflare. It is idempotent when the IP is unchanged.
-func (u *Updater) Update(ctx context.Context, prefix string) error {
+// Update computes a new AAAA address for each configured record and upserts it
+// via Cloudflare. Records with a suffix combine prefix+suffix; records without a
+// suffix use routerIP directly. It is idempotent when the IP is unchanged.
+func (u *Updater) Update(ctx context.Context, prefix, routerIP string) error {
 	for _, rec := range u.records {
-		ip, err := CombinePrefix(prefix, rec.Suffix)
-		if err != nil {
-			return fmt.Errorf("record %s: %w", rec.Name, err)
+		var ip string
+		if rec.Suffix != "" {
+			var err error
+			ip, err = CombinePrefix(prefix, rec.Suffix)
+			if err != nil {
+				return fmt.Errorf("record %s: %w", rec.Name, err)
+			}
+		} else {
+			if routerIP == "" {
+				return fmt.Errorf("record %q has no suffix but ip6addr was not provided", rec.Name)
+			}
+			ip = routerIP
 		}
 		if err := u.upsert(ctx, rec, ip); err != nil {
 			return fmt.Errorf("record %s: %w", rec.Name, err)

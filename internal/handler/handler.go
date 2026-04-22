@@ -11,13 +11,16 @@ import (
 
 // Updater is the interface the handler depends on.
 type Updater interface {
-	Update(ctx context.Context, prefix string) error
+	Update(ctx context.Context, prefix, routerIP string) error
 }
 
 // Update handles GET /update from the Fritz!Box DynDNS mechanism.
 // Expected query params:
 //   - token        — must match the configured secret
-//   - ip6lanprefix — IPv6 LAN prefix in CIDR notation, e.g. "2001:db8::/64"
+//   - ip6lanprefix — IPv6 LAN prefix in CIDR notation, e.g. "2001:db8::/64" (optional)
+//   - ip6addr      — full IPv6 address of the router's WAN interface (optional)
+//
+// At least one of ip6lanprefix or ip6addr must be provided.
 type Update struct {
 	token   string
 	updater Updater
@@ -36,25 +39,35 @@ func (h *Update) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	prefix := q.Get("ip6lanprefix")
-	if prefix == "" {
-		http.Error(w, "missing ip6lanprefix", http.StatusBadRequest)
+	if prefix != "" {
+		if _, _, err := net.ParseCIDR(prefix); err != nil {
+			http.Error(w, fmt.Sprintf("invalid ip6lanprefix: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
+	routerIP := q.Get("ip6addr")
+	if routerIP != "" {
+		if net.ParseIP(routerIP) == nil {
+			http.Error(w, "invalid ip6addr", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if prefix == "" && routerIP == "" {
+		http.Error(w, "missing ip6lanprefix or ip6addr", http.StatusBadRequest)
 		return
 	}
 
-	if _, _, err := net.ParseCIDR(prefix); err != nil {
-		http.Error(w, fmt.Sprintf("invalid ip6lanprefix: %v", err), http.StatusBadRequest)
-		return
-	}
+	slog.Info("received update", "prefix", prefix, "routerIP", routerIP)
 
-	slog.Info("received prefix update", "prefix", prefix)
-
-	if err := h.updater.Update(r.Context(), prefix); err != nil {
-		slog.Error("failed to update DNS records", "error", err, "prefix", prefix)
+	if err := h.updater.Update(r.Context(), prefix, routerIP); err != nil {
+		slog.Error("failed to update DNS records", "error", err, "prefix", prefix, "routerIP", routerIP)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("DNS records updated successfully", "prefix", prefix)
+	slog.Info("DNS records updated successfully", "prefix", prefix, "routerIP", routerIP)
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "OK")
 }

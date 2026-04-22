@@ -109,3 +109,21 @@ func TestLoad_FileNotFound(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+func TestLoad_RecordWithoutSuffixIsValid(t *testing.T) {
+	path := writeTemp(t, `
+update_token: "secret"
+cloudflare:
+  api_token: "cf_token"
+records:
+  - zone_id: "zone1"
+    name: "router.example.com"
+`)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Records[0].Suffix != "" {
+		t.Errorf("Suffix = %q, want empty", cfg.Records[0].Suffix)
+	}
+}

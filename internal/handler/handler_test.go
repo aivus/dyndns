@@ -13,7 +13,7 @@ type mockUpdater struct {
 	err error
 }
 
-func (m *mockUpdater) Update(_ context.Context, _ string) error {
+func (m *mockUpdater) Update(_ context.Context, _, _ string) error {
 	return m.err
 }
 
@@ -45,7 +45,7 @@ func TestUpdate_WrongToken(t *testing.T) {
 	}
 }
 
-func TestUpdate_MissingPrefix(t *testing.T) {
+func TestUpdate_MissingBothParams(t *testing.T) {
 	h := New("secret", &mockUpdater{})
 	r := httptest.NewRequest(http.MethodGet, "/update?token=secret", nil)
 	w := httptest.NewRecorder()
@@ -54,8 +54,33 @@ func TestUpdate_MissingPrefix(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
-	if !strings.Contains(w.Body.String(), "missing ip6lanprefix") {
-		t.Errorf("body %q does not contain %q", w.Body.String(), "missing ip6lanprefix")
+	if !strings.Contains(w.Body.String(), "missing") {
+		t.Errorf("body %q does not contain %q", w.Body.String(), "missing")
+	}
+}
+
+func TestUpdate_ValidIp6addr(t *testing.T) {
+	h := New("secret", &mockUpdater{})
+	r := httptest.NewRequest(http.MethodGet, "/update?token=secret&ip6addr=2001:db8::1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+}
+
+func TestUpdate_MalformedIp6addr(t *testing.T) {
+	h := New("secret", &mockUpdater{})
+	r := httptest.NewRequest(http.MethodGet, "/update?token=secret&ip6addr=notanip", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+	if !strings.Contains(w.Body.String(), "invalid") {
+		t.Errorf("body %q does not contain %q", w.Body.String(), "invalid")
 	}
 }
 

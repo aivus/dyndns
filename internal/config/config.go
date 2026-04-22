@@ -66,9 +66,6 @@ func (c *Config) validate() error {
 		if r.Name == "" {
 			return fmt.Errorf("records[%d]: name is required", i)
 		}
-		if r.Suffix == "" {
-			return fmt.Errorf("records[%d]: suffix is required", i)
-		}
 	}
 	return nil
 }

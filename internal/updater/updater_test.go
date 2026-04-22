@@ -108,7 +108,7 @@ func TestUpdater_RecordExistsWithDifferentIP(t *testing.T) {
 		},
 	}
 	u := New(mock, testRecords)
-	if err := u.Update(context.Background(), "2001:db8:1234:5601::/64"); err != nil {
+	if err := u.Update(context.Background(), "2001:db8:1234:5601::/64", ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !mock.updateCalled {
@@ -129,7 +129,7 @@ func TestUpdater_RecordExistsWithSameIP(t *testing.T) {
 		},
 	}
 	u := New(mock, testRecords)
-	if err := u.Update(context.Background(), "2001:db8:1234:5601::/64"); err != nil {
+	if err := u.Update(context.Background(), "2001:db8:1234:5601::/64", ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if mock.updateCalled {
@@ -152,7 +152,7 @@ func TestUpdater_RecordDoesNotExist(t *testing.T) {
 		},
 	}
 	u := New(mock, testRecords)
-	if err := u.Update(context.Background(), "2001:db8:1234:5601::/64"); err != nil {
+	if err := u.Update(context.Background(), "2001:db8:1234:5601::/64", ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !mock.createCalled {
@@ -174,11 +174,47 @@ func TestUpdater_CloudflareAPIError(t *testing.T) {
 		},
 	}
 	u := New(mock, testRecords)
-	err := u.Update(context.Background(), "2001:db8:1234:5601::/64")
+	err := u.Update(context.Background(), "2001:db8:1234:5601::/64", "")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
 	if !errors.Is(err, apiErr) {
 		t.Errorf("error = %v, want to wrap %v", err, apiErr)
+	}
+}
+
+var testRecordsNoSuffix = []config.RecordConfig{
+	{ZoneID: "zone1", Name: "router.example.com"},
+}
+
+func TestUpdater_RouterIPUsedWhenNoSuffix(t *testing.T) {
+	const routerIP = "2001:db8::abcd"
+	var createdIP string
+	mock := &mockDNSClient{
+		listFn: func(_ context.Context, _, _ string) ([]Record, error) {
+			return nil, nil
+		},
+		createFn: func(_ context.Context, _, _, ip string) error {
+			createdIP = ip
+			return nil
+		},
+	}
+	u := New(mock, testRecordsNoSuffix)
+	if err := u.Update(context.Background(), "", routerIP); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !mock.createCalled {
+		t.Error("expected CreateRecord to be called")
+	}
+	if createdIP != routerIP {
+		t.Errorf("created IP = %q, want %q", createdIP, routerIP)
+	}
+}
+
+func TestUpdater_MissingRouterIPForNoSuffixRecord(t *testing.T) {
+	u := New(&mockDNSClient{}, testRecordsNoSuffix)
+	err := u.Update(context.Background(), "", "")
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }
