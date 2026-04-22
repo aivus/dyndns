@@ -1,0 +1,13 @@
+services:
+  dyndns:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+    environment:
+      # Override config file values via environment variables (optional).
+      # Tokens set here take precedence over values in config.yaml.
+      UPDATE_TOKEN: ${UPDATE_TOKEN:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+    restart: unless-stopped
