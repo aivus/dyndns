@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aivus/dyndns/internal/config"
 	"github.com/aivus/dyndns/internal/handler"
@@ -29,8 +30,16 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("GET /update", h)
 
+	srv := &http.Server{
+		Addr:         *addr,
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
 	slog.Info("starting server", "addr", *addr)
-	if err := http.ListenAndServe(*addr, mux); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}

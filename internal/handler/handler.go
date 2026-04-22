@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net"
@@ -29,7 +30,7 @@ func New(token string, updater Updater) *Update {
 func (h *Update) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	if q.Get("token") != h.token {
+	if subtle.ConstantTimeCompare([]byte(q.Get("token")), []byte(h.token)) != 1 {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}

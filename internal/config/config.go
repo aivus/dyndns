@@ -35,6 +35,9 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 
+	if token := os.Getenv("UPDATE_TOKEN"); token != "" {
+		cfg.UpdateToken = token
+	}
 	if token := os.Getenv("CLOUDFLARE_API_TOKEN"); token != "" {
 		cfg.Cloudflare.APIToken = token
 	}
@@ -55,6 +58,17 @@ func (c *Config) validate() error {
 	}
 	if len(c.Records) == 0 {
 		return fmt.Errorf("at least one record must be configured under records:")
+	}
+	for i, r := range c.Records {
+		if r.ZoneID == "" {
+			return fmt.Errorf("records[%d]: zone_id is required", i)
+		}
+		if r.Name == "" {
+			return fmt.Errorf("records[%d]: name is required", i)
+		}
+		if r.Suffix == "" {
+			return fmt.Errorf("records[%d]: suffix is required", i)
+		}
 	}
 	return nil
 }

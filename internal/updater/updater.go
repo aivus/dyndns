@@ -58,10 +58,15 @@ func (u *Updater) upsert(ctx context.Context, rec config.RecordConfig, ip string
 	if len(existing) == 0 {
 		return u.client.CreateRecord(ctx, rec.ZoneID, rec.Name, ip)
 	}
-	if existing[0].Content == ip {
-		return nil
+	for _, r := range existing {
+		if r.Content == ip {
+			continue
+		}
+		if err := u.client.UpdateRecord(ctx, rec.ZoneID, r.ID, rec.Name, ip); err != nil {
+			return err
+		}
 	}
-	return u.client.UpdateRecord(ctx, rec.ZoneID, existing[0].ID, rec.Name, ip)
+	return nil
 }
 
 // CombinePrefix combines an IPv6 CIDR prefix (e.g. "2001:db8::/64") with a
