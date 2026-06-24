@@ -3,7 +3,7 @@ module github.com/aivus/dyndns
 go 1.26.0
 
 require (
-	github.com/cloudflare/cloudflare-go/v6 v6.9.0
+	github.com/cloudflare/cloudflare-go/v6 v6.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
