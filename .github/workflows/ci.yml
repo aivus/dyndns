@@ -4,6 +4,9 @@ on:
   push:
     branches: ["main"]
   pull_request:
+  schedule:
+    # Re-scan daily so newly published vulnerabilities are caught without a code change.
+    - cron: "0 6 * * *"
 
 jobs:
   test:
@@ -22,3 +25,30 @@ jobs:
 
       - name: Test
         run: go test -race -count=1 ./...
+
+  govulncheck:
+    name: Vulnerability check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Scan with the same Go minor version the Docker image is built with,
+      # since that toolchain's standard library is what ships in the binary.
+      - name: Determine Go version from Dockerfile
+        id: go
+        run: |
+          version=$(sed -n 's/^FROM golang:\([0-9.]*\)-.*/\1/p' Dockerfile | head -n1)
+          test -n "$version" || { echo "Could not parse Go version from Dockerfile" >&2; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+          check-latest: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
